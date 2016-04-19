@@ -600,7 +600,7 @@ check_headers([Header | Tail], Headers) ->
 	end.
 
 ensure_content_headers(Type, SubType, Parameters, Headers, Body, Toplevel) ->
-	CheckHeaders = [<<"Content-Type">>, <<"Content-Disposition">>, <<"Content-Transfer-Encoding">>],
+	CheckHeaders = [<<"Content-Type">>, <<"Content-Disposition">>, <<"Content-Transfer-Encoding">>, <<"Content-ID">>],
 	ensure_content_headers(CheckHeaders, Type, SubType, Parameters, lists:reverse(Headers), Body, Toplevel).
 
 ensure_content_headers([], _, _, Parameters, Headers, _, _) ->
@@ -666,6 +666,13 @@ ensure_content_headers([Header | Tail], Type, SubType, Parameters, Headers, Body
 				_ ->
 					ensure_content_headers(Tail, Type, SubType, Parameters, [{<<"Content-Transfer-Encoding">>, Enc} | Headers], Body, Toplevel)
 			end;
+                undefined when Header == <<"Content-ID">>, Type =/= <<"multipart">> ->
+                        case proplists:get_value(<<"content-id">>, Parameters) of
+                                undefined ->
+                                        ensure_content_headers(Tail, Type, SubType, Parameters, Headers, Body, Toplevel);
+                                Value ->
+                                        ensure_content_headers(Tail, Type, SubType, Parameters, [{<<"Content-ID">>, Value} | Headers], Body, Toplevel)
+                        end;
 		undefined when Header == <<"Content-Disposition">>, Toplevel == false ->
 			CD = proplists:get_value(<<"disposition">>, Parameters, <<"inline">>),
 			CDP = proplists:get_value(<<"disposition-params">>, Parameters, []),
